@@ -72,7 +72,7 @@ The Intelbase API key is sent as `x-api-key` from server-side environment variab
 
 1. Push the repository to GitHub.
 2. Import the repo in Vercel.
-3. Add these Vercel environment variables for Production, Preview, and Development:
+3. Add these Vercel environment variables for Production, plus Preview or Development if you use those targets:
    - `INTELBASE_API_KEY`
    - `INTELBASE_API_URL`
    - `SCAN_RATE_LIMIT_MAX`
