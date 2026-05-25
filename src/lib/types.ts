@@ -34,3 +34,17 @@ export type ScanErrorResponse = {
   error: string;
   code: string;
 };
+
+export type ScanHealthResponse = {
+  ok: boolean;
+  intelbase: {
+    apiUrl: string;
+    apiKeyConfigured: boolean;
+    apiKeyLooksPlaceholder: boolean;
+    upstreamVerification: "not_checked";
+  };
+  rateLimit: {
+    maxRequests: number;
+    windowMs: number;
+  };
+};

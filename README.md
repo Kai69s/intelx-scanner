@@ -36,6 +36,13 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+If PowerShell blocks `npm.ps1` on Windows, use the `.cmd` shim:
+
+```powershell
+npm.cmd install
+npm.cmd run dev
+```
+
 ## Validation
 
 ```bash
@@ -51,6 +58,14 @@ Frontend requests are sent to:
 ```text
 POST /api/scan
 ```
+
+A non-secret configuration check is available at:
+
+```text
+GET /api/scan
+```
+
+It reports whether the server has an Intelbase key configured and which rate-limit values are active. It does not verify the key with Intelbase or expose the key value.
 
 Request body:
 
@@ -77,8 +92,9 @@ The Intelbase API key is sent as `x-api-key` from server-side environment variab
    - `INTELBASE_API_URL`
    - `SCAN_RATE_LIMIT_MAX`
    - `SCAN_RATE_LIMIT_WINDOW_MS`
-4. Deploy.
-5. Whitelist the Vercel deployment egress IP or use a network configuration compatible with Intelbase IP whitelisting.
+4. Never commit `.env.local` or API keys to GitHub. Vercel must receive secrets through Project Settings or the Vercel CLI.
+5. Deploy.
+6. Whitelist the Vercel deployment egress IP or use a network configuration compatible with Intelbase IP whitelisting.
 
 ## Security Notes
 

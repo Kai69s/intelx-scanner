@@ -1,6 +1,8 @@
 import type { IntelligenceReport, IntelSource, RiskLevel } from "@/lib/types";
 
-const API_URL = process.env.INTELBASE_API_URL ?? "https://api.intelbase.is";
+const API_URL = (process.env.INTELBASE_API_URL ?? "https://api.intelbase.is")
+  .trim()
+  .replace(/\/+$/, "");
 const EMAIL_ENDPOINT = "/lookup/email";
 
 type UnknownRecord = Record<string, unknown>;
@@ -255,7 +257,7 @@ export function normalizeIntelbaseResponse(
 }
 
 export async function lookupEmail(email: string): Promise<unknown> {
-  const apiKey = process.env.INTELBASE_API_KEY;
+  const apiKey = process.env.INTELBASE_API_KEY?.trim();
 
   if (!apiKey) {
     throw new Error("INTELBASE_API_KEY is not configured");
@@ -281,7 +283,15 @@ export async function lookupEmail(email: string): Promise<unknown> {
     });
 
     const text = await response.text();
-    const body = text ? (JSON.parse(text) as unknown) : null;
+    let body: unknown = null;
+
+    if (text) {
+      try {
+        body = JSON.parse(text) as unknown;
+      } catch {
+        body = text;
+      }
+    }
 
     if (!response.ok) {
       const error = isRecord(body) && typeof body.error === "string" ? body.error : response.statusText;
