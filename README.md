@@ -67,6 +67,14 @@ GET /api/scan
 
 It reports whether the server has an Intelbase key configured and which rate-limit values are active. It does not verify the key with Intelbase or expose the key value.
 
+To inspect the current server outbound IP for Intelbase whitelisting:
+
+```text
+GET /api/egress-ip
+```
+
+Use this as a diagnostic only. Vercel outbound IPs can change unless Static IPs are enabled for the project.
+
 Request body:
 
 ```json
