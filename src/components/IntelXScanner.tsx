@@ -70,6 +70,12 @@ type CachedReport = {
   expiresAt: number;
 };
 
+type ScanErrorState = {
+  message: string;
+  egressIp?: string | null;
+  docsUrl?: string;
+};
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function classNames(...values: Array<string | false | null | undefined>) {
@@ -304,7 +310,7 @@ export function IntelXScanner() {
   const [report, setReport] = useState<IntelligenceReport | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ScanErrorState | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [stageIndex, setStageIndex] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -432,7 +438,7 @@ export function IntelXScanner() {
     setError(null);
 
     if (!emailPattern.test(normalizedEmail)) {
-      setError("Enter a valid email address to initialize the scan.");
+      setError({ message: "Enter a valid email address to initialize the scan." });
       pushLog("Scan rejected: invalid identity format");
       return;
     }
@@ -464,7 +470,16 @@ export function IntelXScanner() {
       const body = (await response.json()) as ScanResponse | ScanErrorResponse;
 
       if (!response.ok || "error" in body) {
-        throw new Error("error" in body ? body.error : "Scan relay failed.");
+        if ("error" in body) {
+          setError({
+            message: body.error,
+            egressIp: body.diagnostics?.egressIp,
+            docsUrl: body.diagnostics?.docsUrl,
+          });
+          throw new Error(body.error);
+        }
+
+        throw new Error("Scan relay failed.");
       }
 
       window.clearInterval(stageTimer);
@@ -481,7 +496,7 @@ export function IntelXScanner() {
     } catch (scanError) {
       window.clearInterval(stageTimer);
       const message = scanError instanceof Error ? scanError.message : "Scan failed.";
-      setError(message);
+      setError((current) => current ?? { message });
       setStageIndex(0);
       pushLog("Scan relay returned a controlled fault");
     } finally {
@@ -706,14 +721,36 @@ export function IntelXScanner() {
                     </button>
                   </div>
                   {error ? (
-                    <motion.p
+                    <motion.div
                       animate={{ opacity: 1 }}
-                      className="mt-3 rounded-md border border-red-300/25 bg-red-400/10 px-3 py-2 text-sm text-red-100"
+                      className="mt-3 rounded-md border border-red-300/25 bg-red-400/10 px-3 py-3 text-sm text-red-100"
                       initial={{ opacity: 0 }}
                       role="alert"
                     >
-                      {error}
-                    </motion.p>
+                      <p>{error.message}</p>
+                      {error.egressIp ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-red-100/85">
+                          <span className="font-mono">Whitelist IP: {error.egressIp}</span>
+                          <button
+                            className="rounded-md border border-red-200/25 px-2 py-1 text-xs transition hover:bg-red-200/10"
+                            onClick={() => void navigator.clipboard?.writeText(error.egressIp ?? "")}
+                            type="button"
+                          >
+                            Copy IP
+                          </button>
+                          {error.docsUrl ? (
+                            <a
+                              className="rounded-md border border-red-200/25 px-2 py-1 transition hover:bg-red-200/10"
+                              href={error.docsUrl}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Intelbase docs
+                            </a>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </motion.div>
                   ) : null}
                 </div>
 

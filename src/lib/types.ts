@@ -33,6 +33,11 @@ export type ScanResponse = {
 export type ScanErrorResponse = {
   error: string;
   code: string;
+  diagnostics?: {
+    egressIp: string | null;
+    whitelistRequired: boolean;
+    docsUrl: string;
+  };
 };
 
 export type ScanHealthResponse = {

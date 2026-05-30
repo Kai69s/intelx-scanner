@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { getCurrentEgressIp } from "@/lib/egress";
 import { lookupEmail, normalizeIntelbaseResponse } from "@/lib/intelbase";
 import { rateLimit } from "@/lib/rate-limit";
 import type { ScanErrorResponse, ScanHealthResponse, ScanResponse } from "@/lib/types";
@@ -33,9 +34,14 @@ function clientKey(request: NextRequest) {
   return forwardedFor || realIp || "local";
 }
 
-function errorResponse(message: string, code: string, status: number) {
+function errorResponse(
+  message: string,
+  code: string,
+  status: number,
+  diagnostics?: ScanErrorResponse["diagnostics"],
+) {
   return NextResponse.json<ScanErrorResponse>(
-    { error: message, code },
+    { error: message, code, ...(diagnostics ? { diagnostics } : {}) },
     {
       status,
       headers: {
@@ -123,10 +129,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (message.includes("(401)") || message.includes("(403)")) {
+      const egressIp = await getCurrentEgressIp();
       return errorResponse(
-        "Intelbase rejected the server credential or IP whitelist. Update the server API key and whitelist the deployment IP.",
+        egressIp
+          ? `Intelbase rejected this server. Whitelist ${egressIp} in Intelbase, then retry the scan.`
+          : "Intelbase rejected this server. Confirm the API key and whitelist the deployment outbound IP.",
         "UPSTREAM_AUTH",
         502,
+        {
+          egressIp,
+          whitelistRequired: true,
+          docsUrl: "https://docs.intelbase.is/api-reference/introduction.md",
+        },
       );
     }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentEgressIp } from "@/lib/egress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,22 +12,9 @@ type EgressIpResponse = {
 };
 
 export async function GET() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const ip = await getCurrentEgressIp();
 
-  try {
-    const response = await fetch("https://api.ipify.org?format=json", {
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`IP check failed (${response.status})`);
-    }
-
-    const body = (await response.json()) as { ip?: unknown };
-    const ip = typeof body.ip === "string" ? body.ip : null;
-
+  if (ip) {
     return NextResponse.json<EgressIpResponse>(
       {
         ip,
@@ -40,22 +28,20 @@ export async function GET() {
         },
       },
     );
-  } catch {
-    return NextResponse.json<EgressIpResponse>(
-      {
-        ip: null,
-        checkedAt: new Date().toISOString(),
-        source: "api.ipify.org",
-        note: "The deployment could not resolve its current outbound IP.",
-      },
-      {
-        status: 502,
-        headers: {
-          "cache-control": "no-store",
-        },
-      },
-    );
-  } finally {
-    clearTimeout(timeout);
   }
+
+  return NextResponse.json<EgressIpResponse>(
+    {
+      ip: null,
+      checkedAt: new Date().toISOString(),
+      source: "api.ipify.org",
+      note: "The deployment could not resolve its current outbound IP.",
+    },
+    {
+      status: 502,
+      headers: {
+        "cache-control": "no-store",
+      },
+    },
+  );
 }
